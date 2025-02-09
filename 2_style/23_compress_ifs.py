@@ -7,16 +7,14 @@
 
 
 # COMMENT --------------------------------------------------
-# Not optimal
 def set_color(ctrl_list=None, color=None):
 
     for ctrl_name in ctrl_list:
-        try:
+"""        try:
             mc.setAttr(ctrl_name + 'Shape.overrideEnabled', 1)
         except:
             pass
-
-        
+"""
         if color == 1:
             mc.setAttr(ctrl_name + 'Shape.overrideColor', 4)
         elif color == 2:

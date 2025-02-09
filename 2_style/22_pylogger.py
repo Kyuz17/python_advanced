@@ -7,14 +7,14 @@
 
 # original: logging.init.py
 
-def findCaller(self):
-    """
-    Find the stack frame of the caller so that we can note the source
+def find_caller(self):
+    """Find the stack frame of the caller so that we can note the source
     file name, line number and function name.
     """
     f = currentframe()
-    #On some versions of IronPython, currentframe() returns None if
-    #IronPython isn't run with -X:Frames.
+    """On some versions of IronPython, currentframe() returns None if
+    IronPython isn't run with -X:Frames.
+    """
     if f is not None:
         f = f.f_back
     rv = "(unknown file)", 0, "(unknown function)"

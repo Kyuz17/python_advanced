@@ -37,23 +37,27 @@ class ArLoad(ArUtil):
         self.wgLoad.show()
         LOG.info('START : ArLoad')
 
-    def press_btnAccept(self):
+#################################################################################################################################
+#
+#   BUILD
+
+    def press_btn_accept(self):
         if not os.path.exists(self.load_file):
             self.set_status('FAILED LOADING : Path doesn\'t exists: {}'.format(self.load_file), msg_type=3)
             return False
 
-    def press_menuItemAddFolder(self):
+    def press_menu_item_add_folder(self):
         import arSaveAs
         self.save_as = arSaveAs.start(new_file=False)
 
-    def press_menuSort(self, list_widget, reverse=False):
+    def press_menu_sort(self, list_widget, reverse=False):
         file_list = []
         for index in xrange(list_widget.count()):
              file_list.append(list_widget.item(index).text())
         list_widget.clear()
         list_widget.addItems(sorted(file_list, reverse=reverse))
 
-    def change_lstScene(self):
+    def change_lst_scene(self):
         self.load_dir = self.data['project']['PATH'][self.wgLoad.lstScene.currentItem().text()]
         tmp_content = libFunc.get_file_list(self.load_dir)
         self.scene_steps = len(self.data['rules']['SCENES'][self.wgLoad.lstScene.currentItem().text()].split('/'))
@@ -67,7 +71,7 @@ class ArLoad(ArUtil):
             self.wgLoad.lstSet.addItems(sorted(tmp_content))
             self.wgLoad.lstSet.setCurrentRow(0)
 
-    def change_lstSet(self):
+    def change_lst_set(self):
         new_path = self.load_dir + '/' + self.wgLoad.lstSet.currentItem().text()
         tmp_content = libFunc.get_file_list(new_path)
 
@@ -84,7 +88,7 @@ class ArLoad(ArUtil):
                 self.wgLoad.lstAsset.addItems(sorted(tmp_content))
                 self.wgLoad.lstAsset.setCurrentRow(0)
 
-    def change_lstAsset(self):
+    def change_lst_asset(self):
         new_path = self.load_dir + '/' + self.wgLoad.lstSet.currentItem().text() \
                    + '/' + self.wgLoad.lstAsset.currentItem().text()
         tmp_content = libFunc.get_file_list(new_path)
@@ -104,6 +108,9 @@ class ArLoad(ArUtil):
         self.wgPreview.lblTitle.setText('')
         self.wgPreview.lblDate.setText('')
 
+#################################################################################################################################
+#
+# START
 
 def execute_the_class_ar_load():
     global main_widget

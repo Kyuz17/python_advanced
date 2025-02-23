@@ -75,6 +75,6 @@ cube1 = Cube("blue")
 
 cube1.print_status()
 
-cube1.update_transform("rotate", [0, 2, 3])
+cube1.update_transform("rotate", [0, 4, 3])
 
 cube1.print_status()

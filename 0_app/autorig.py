@@ -73,6 +73,12 @@ def lock_scale(obj):
     cmds.setAttr(obj + '.scaleY', lock=1, keyable = False, channelBox = False)
     cmds.setAttr(obj + '.scaleZ', lock=1, keyable = False, channelBox = False)
 
+def create_circle_x_axis(naming):
+    ctrl = cmds.circle(n = naming)[0]
+    cmds.setAttr(ctrl + ".rotateY", 90)
+    cmds.makeIdentity(ctrl, apply=True, t=True, r=True, s=True)
+    return ctrl
+
 def select_skin_jnt():
     cmds.select("*skin_jnt")
 
@@ -121,7 +127,6 @@ def auto_rigger():
 
     jnts = cmds.ls("*k_jnt",type = "transform")
 
-
     for jnt in jnts:
         ctrl_name = jnt.replace("jnt", "ctrl")
         ctrl = create_circle_x_axis(ctrl_name)
@@ -161,27 +166,38 @@ def auto_rigger():
     cmds.parentConstraint("l_elbow_fk_jnt", "l_elbow_ik_jnt", "l_elbow_skin_jnt", maintainOffset = True)
     cmds.parentConstraint("l_wrist_fk_jnt", "l_wrist_ik_jnt", "l_wrist_skin_jnt", maintainOffset = True)
 
-    ikfk_switch = cmds.circle(n = "ikfk_ctrl")[0]
-    cmds.delete(ikfk_switch, constructionHistory = True)
-    cmds.parentConstraint("l_should_ik_ctrl", ikfk_switch, maintainOffset = False)
-    cmds.delete(str(ikfk_switch) + "_parent*")
+    l_ikfk_switch = cmds.circle(n = "l_ikfk_ctrl")[0]
+    cmds.delete(l_ikfk_switch, constructionHistory = True)
+    cmds.parentConstraint("l_should_ik_ctrl", l_ikfk_switch, maintainOffset = False)
+    cmds.delete(str(l_ikfk_switch) + "_parent*")
 
-    group_offset("ikfk_ctrl")
+    l_ikfk = cmds.ls("l_ikfk_ctrl")[0]
+    grp_name = l_ikfk.replace("ctrl", "grp")
+    off_name = l_ikfk.replace("ctrl", "off")
+    off_grp = cmds.group( em=True, name = off_name)
+    grp_grp = cmds.group( em=True, name = grp_name)
+    cmds.parentConstraint(l_ikfk, off_grp, maintainOffset = False)
+    cmds.parentConstraint(l_ikfk, grp_grp, maintainOffset = False)
+    cmds.delete(str(off_grp) + "_parent*")
+    cmds.delete(str(grp_grp) + "_parent*")
+    cmds.parent(l_ikfk, off_grp)
+    cmds.parent(off_grp, grp_grp)
 
-    cmds.addAttr("ikfk_ctrl", ln='IkFk', defaultValue=1.0, minValue=0, maxValue = 1, attributeType='float', keyable=True)
+    cmds.addAttr("l_ikfk_ctrl", ln='l_IkFk', defaultValue=1.0, minValue=0, maxValue = 1, attributeType='float', keyable=True)
         
-    cmds.createNode('reverse', name= "IkFkReverse")
-    cmds.connectAttr("ikfk_ctrl" + ".IkFk" , "IkFkReverse" + ".input.inputX" )
+    cmds.createNode('reverse', name= "l_IkFkReverse")
+    cmds.connectAttr("l_ikfk_ctrl" + ".l_IkFk" , "l_IkFkReverse" + ".input.inputX" )
 
     skin_jnts = cmds.ls("*skin_jnt")
 
     for skin_jnt in skin_jnts:
         jnt_part = skin_jnt.split("_")[0]
-        cmds.connectAttr("ikfk_ctrl" + ".IkFk" , skin_jnt +"_parentConstraint1." + jnt_part + "_fk_jntW0" )
-        cmds.connectAttr("IkFkReverse" + ".output.outputX" , skin_jnt + "_parentConstraint1."+ jnt_part + "_ik_jntW1" )
+        jnt_part2 = skin_jnt.split("_")[1]
+        cmds.connectAttr("l_ikfk_ctrl" + ".l_IkFk" , skin_jnt +"_parentConstraint1." + jnt_part + "_" + jnt_part2 +"_fk_jntW0" )
+        cmds.connectAttr("l_IkFkReverse" + ".output.outputX" , skin_jnt + "_parentConstraint1." + jnt_part + "_" + jnt_part2 + "_ik_jntW1" )
 
-    cmds.connectAttr("ikfk_ctrl" + ".IkFk" , "l_should_fk_grp" + ".visibility" )
-    cmds.connectAttr("IkFkReverse" + ".output.outputX", "l_should_ik_grp" + ".visibility")
+    cmds.connectAttr("l_ikfk_ctrl" + ".l_IkFk" , "l_should_fk_grp" + ".visibility" )
+    cmds.connectAttr("l_IkFkReverse" + ".output.outputX", "l_should_ik_grp" + ".visibility")
 
     cmds.ikHandle( sj='l_should_ik_jnt', ee='l_wrist_ik_jnt')
 
@@ -194,45 +210,34 @@ def auto_rigger():
 
     cmds.setAttr("l_should_fk_jnt" + '.visibility', 0)
     cmds.setAttr("l_should_ik_jnt" + '.visibility', 0)
-    cmds.connectAttr("IkFkReverse" + ".output.outputX", "ikHandle1" + ".visibility")
+    cmds.connectAttr("l_IkFkReverse" + ".output.outputX", "ikHandle1" + ".visibility")
 
     mel.eval("cycleCheck -e off")
 
-    cmds.group( em=True, name='l_jnt_grp' )
-
-    shoulder_jnts =cmds.ls("*_should_*",type = "transform")
-
-    for should in shoulder_jnts:
-        cmds.parent(cmds.parent(should ,"l_jnt_grp" , a = True))
-
-    cmds.group( em=True, name='l_jnt_grp' )
+    cmds.group(em=True, name='l_jnt_grp')
 
     shoulder_jnts = cmds.ls("*_should_*_jnt",type = "transform")
 
-    for should in shoulder_jnts:
-        cmds.parent(should ,"l_jnt_grp" , a = True)
-        
+    for shoulder in shoulder_jnts:
+        cmds.parent(shoulder ,"l_jnt_grp" , a = True)
+
     cmds.duplicate( "l_jnt_grp", n = "r_jnt_grp" )
 
-    cmds.select("r_jnt_grp",  hi = True) 
+    cmds.select("r_jnt_grp",  hi = True)
+    r_jnt_grp = cmds.ls("l_*", sl=True)
 
-    r_jnt_grp = cmds.ls("r_*", sl=True)
-
-    for x in r_jnt_grp:
-        if "parent" in x:
-            cmds.delete(x)
-        if "l_" in x:
+    for item in r_jnt_grp:
+        if "l_" in item:
             mel.eval("searchReplaceNames l_ r_ hierarchy")
-            
+    effect = cmds.ls("effector*", sl=True)
+    cmds.delete(effect)
+    
+    r_constraint_grp = cmds.ls("r_*parent*", type = "transform")
+    for constraint in r_constraint_grp:
+        cmds.delete(constraint)
+
+
     cmds.setAttr("r_jnt_grp" + ".scaleX", -1)
-
-    jnts = cmds.ls("*r_*_jnt",type = "transform")
-
-    def create_circle_x_axis(naming):
-        ctrl = cmds.circle(n = naming)[0]
-        cmds.setAttr(ctrl + ".rotateY", 90)
-        cmds.makeIdentity(ctrl, apply=True, t=True, r=True, s=True)
-        return ctrl
 
     jnts = cmds.ls("*r_*k_jnt",type = "transform")
 
@@ -247,7 +252,7 @@ def auto_rigger():
     for ctrl in ctrls:
         cmds.delete(ctrl, constructionHistory = True)
         cmds.setAttr(str(ctrl) + ".overrideEnabled", 1)
-        if  "ik" in ctrl:   
+        if   "ik" in ctrl:   
             cmds.setAttr(str(ctrl) + ".overrideColor", 17)
         elif "fk" in ctrl:
             cmds.setAttr(str(ctrl) + ".overrideColor", 12)
@@ -273,12 +278,49 @@ def auto_rigger():
 
     skin_jnts = cmds.ls("r_*skin_jnt")
 
+    r_ikfk_switch = cmds.circle(n = "r_ikfk_ctrl")[0]
+    cmds.delete(r_ikfk_switch, constructionHistory = True)
+    cmds.parentConstraint("r_should_ik_ctrl", r_ikfk_switch, maintainOffset = False)
+    cmds.delete(str(r_ikfk_switch) + "_parent*")
+
+    r_ikfk = cmds.ls("r_ikfk_ctrl")[0]
+    grp_name = r_ikfk.replace("ctrl", "grp")
+    off_name = r_ikfk.replace("ctrl", "off")
+    off_grp = cmds.group( em=True, name = off_name)
+    grp_grp = cmds.group( em=True, name = grp_name)
+    cmds.parentConstraint(r_ikfk, off_grp, maintainOffset = False)
+    cmds.parentConstraint(r_ikfk, grp_grp, maintainOffset = False)
+    cmds.delete(str(off_grp) + "_parent*")
+    cmds.delete(str(grp_grp) + "_parent*")
+    cmds.parent(r_ikfk, off_grp)
+    cmds.parent(off_grp, grp_grp)
+
+    cmds.addAttr("r_ikfk_ctrl", ln='r_IkFk', defaultValue=1.0, minValue=0, maxValue = 1, attributeType='float', keyable=True)
+        
+    cmds.createNode('reverse', name= "r_IkFkReverse")
+    cmds.connectAttr("r_ikfk_ctrl" + ".r_IkFk" , "r_IkFkReverse" + ".input.inputX" )
+
+    skin_jnts = cmds.ls("r_*skin_jnt")
+
     for skin_jnt in skin_jnts:
         jnt_part = skin_jnt.split("_")[0]
-        cmds.connectAttr("ikfk_ctrl" + ".IkFk" , skin_jnt +"_parentConstraint1." + jnt_part + "_fk_jntW0" )
-        cmds.connectAttr("IkFkReverse" + ".output.outputX" , skin_jnt + "_parentConstraint1."+ jnt_part + "_ik_jntW1" )
+        jnt_part2 = skin_jnt.split("_")[1]
+        cmds.connectAttr("r_ikfk_ctrl" + ".r_IkFk" , skin_jnt +"_parentConstraint1." + jnt_part + "_" + jnt_part2 +"_fk_jntW0" )
+        cmds.connectAttr("r_IkFkReverse" + ".output.outputX" , skin_jnt + "_parentConstraint1." + jnt_part + "_" + jnt_part2 + "_ik_jntW1" )
 
-    cmds.connectAttr("ikfk_ctrl" + ".IkFk" , "r_should_fk_grp" + ".visibility" )
-    cmds.connectAttr("IkFkReverse" + ".output.outputX", "r_should_ik_grp" + ".visibility")
+    cmds.connectAttr("r_ikfk_ctrl" + ".r_IkFk" , "r_should_fk_grp" + ".visibility" )
+    cmds.connectAttr("r_IkFkReverse" + ".output.outputX", "r_should_ik_grp" + ".visibility")
 
     cmds.ikHandle( sj='r_should_ik_jnt', ee='r_wrist_ik_jnt')
+
+    ctrls = cmds.ls("*_ctrl")
+
+    for ctrl in ctrls :
+        lock_scale(ctrl)
+        if "fk" in ctrl:
+            lock_translate(ctrl)
+
+    cmds.setAttr("r_should_fk_jnt" + '.visibility', 0)
+    cmds.setAttr("r_should_ik_jnt" + '.visibility', 0)
+    cmds.connectAttr("r_IkFkReverse" + ".output.outputX", "ikHandle2" + ".visibility")
+
